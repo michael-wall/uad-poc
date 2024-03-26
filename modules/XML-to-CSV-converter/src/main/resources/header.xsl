@@ -13,7 +13,7 @@
   </xsl:template>
 
   <xsl:template match="model-name">
-    <xsl:text>Model</xsl:text>
+    <xsl:text>model</xsl:text>
   </xsl:template>
 
   <xsl:template match="column">
