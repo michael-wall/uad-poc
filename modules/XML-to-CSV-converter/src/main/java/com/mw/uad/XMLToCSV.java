@@ -16,21 +16,37 @@ public class XMLToCSV {
 		public static final String HEADER = "/header.xsl";
 		public static final String CONTENT = "/content.xsl";
 	}	
-	
+
 	public static void main(String[] args) {
+    	if (args == null || args.length != 3) {
+    		System.out.println("Arguments not as expected. See the readme for more details on the arguments expected. Unable to proceed.");
+    		
+    		return;
+    	}
+        
+    	String inputFolderString = args[0];
+    	String outputFolderString = args[1];
+    	boolean debugLogging = Boolean.valueOf(args[2]);
+    	
+    	System.out.println("inputFolder: " + inputFolderString);
+    	System.out.println("outputFolder: " + outputFolderString);
+    	System.out.println("debugLogging: " + debugLogging);
+		
+		XMLToCSV xmlToCSV = new XMLToCSV(inputFolderString, outputFolderString, debugLogging);
+		
+		xmlToCSV.run();
+	}
+
+	public XMLToCSV(String inputFolderString, String outputFolderString, boolean debugLogging) {
+		super();
+		this.debugLogging = debugLogging;
+		this.inputFolderString = inputFolderString;
+		this.outputFolderString = outputFolderString;
+	}
+
+	private void run() {
+		
         try {
-        	if (args == null || args.length != 2) {
-        		System.out.println("Arguments not as expected. Unable to proceed.");
-        		
-        		return;
-        	}
-            
-        	String inputFolderString = args[0];
-        	String outputFolderString = args[1];
-
-        	System.out.println("inputFolder: " + inputFolderString);
-        	System.out.println("outputFolder: " + outputFolderString);
-
             File inputFolder = new File(inputFolderString);
             File outputFolder = new File(outputFolderString);
             
@@ -52,17 +68,17 @@ public class XMLToCSV {
             
             processFolderContents(inputFolder.listFiles(), inputFolder.getName(), outputFolderString, headerTransformer, contentTransformer);
             
-            System.out.println("Done..");
+            System.out.println("Done... " + xmlFileCount + " XML files merged into " + csvFileCount + " CSV files.");
             
         } catch (Exception e) {
         	e.printStackTrace();
         }
     }
 
-	private static void processFolderContents(File[] files, String parentFolderName, String outputFolderString, Transformer headerTransformer,
+	private void processFolderContents(File[] files, String parentFolderName, String outputFolderString, Transformer headerTransformer,
 			Transformer contentTransformer) {
 		
-		System.out.println("Processing folder: " + parentFolderName);
+		if (debugLogging) System.out.println("Processing folder: " + parentFolderName);
 
 		FileOutputStream outputStream = null;
         OutputStreamWriter writer = null;
@@ -77,7 +93,7 @@ public class XMLToCSV {
 	        
 		        if (file.isDirectory()) {
 		        	processFolderContents(file.listFiles(), file.getName(), outputFolderString, headerTransformer, contentTransformer);
-		        } else if (file.isFile() && file.getName() != null && file.getName().toLowerCase().endsWith(".xml")) { // Only interested in XML files...	
+		        } else if (file.isFile() && file.getName() != null && file.getName().toLowerCase().endsWith(".xml")) { // Only interested in XML files... 			        	
 					if (!fileFound) {
 						fileFound = true;
 
@@ -85,17 +101,23 @@ public class XMLToCSV {
 						outputStream = new FileOutputStream(outputFile);
 						writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
 						
-						System.out.println("Created file: " + outputFile.getName());
+						if (debugLogging) System.out.println("Created file: " + outputFile.getName());
 					}
+					
+		        	if (debugLogging) System.out.println("Processing file: " + file.getName() + " in folder " + parentFolderName);
 		
 					// All XML files in the folder should be the same so same header applies to all
 					if (!headerWritten) {
 						headerWritten = true;
 
 						headerTransformer.transform(new StreamSource(file), new StreamResult(writer));
+						
+						csvFileCount ++;
 					}
 		        	
 		       		contentTransformer.transform(new StreamSource(file), new StreamResult(writer));
+		       		
+		       		xmlFileCount ++;
 		        }
 			}
         } catch (Exception e) {
@@ -105,4 +127,12 @@ public class XMLToCSV {
             if (outputStream != null) try { outputStream.close(); } catch(Exception e) {};
         }		
 	}
+	
+	private boolean debugLogging = false;
+	
+	private String inputFolderString;
+	private String outputFolderString;
+	
+	private long xmlFileCount = 0;
+	private long csvFileCount = 0;	
 }
